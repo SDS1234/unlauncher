@@ -13,10 +13,16 @@ import com.jkuester.unlauncher.datasource.DataRepository
 import com.jkuester.unlauncher.datastore.proto.CorePreferences
 import com.jkuester.unlauncher.datastore.proto.UnlauncherApp
 import com.jkuester.unlauncher.datastore.proto.UnlauncherApps
+import com.jkuester.unlauncher.datastore.proto.UnlauncherFolder
 import com.sduduzog.slimlauncher.R
 import com.sduduzog.slimlauncher.ui.main.HomeFragment
 import com.sduduzog.slimlauncher.utils.firstUppercase
 import com.sduduzog.slimlauncher.utils.gravity
+import java.util.Locale
+
+private const val FOLDER_PREFIX = "\uD83D\uDCC1 " // 📁
+private const val FOLDER_EXPANDED_PREFIX = "\uD83D\uDCC2 " // 📂
+private const val FOLDER_ITEM_INDENT = "  "
 
 class AppDrawerAdapter(
     private val listener: HomeFragment.AppDrawerListener,
@@ -28,12 +34,15 @@ class AppDrawerAdapter(
     private val workAppPrefix = "\uD83C\uDD46 " // Unicode for boxed w
     private val regex = Regex("[!@#\$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/? ]")
     private var apps: List<UnlauncherApp> = listOf()
+    private var folders: List<UnlauncherFolder> = listOf()
     private var filteredApps: List<AppDrawerRow> = listOf()
     private var gravity = 3
+    private val expandedFolderIds = mutableSetOf<String>()
 
     init {
         unlauncherAppsRepo.observe { unlauncherApps ->
             apps = unlauncherApps.appsList
+            folders = unlauncherApps.foldersList
             updateFilteredApps()
         }
         corePreferencesRepo.observe { corePrefs ->
@@ -58,6 +67,28 @@ class AppDrawerAdapter(
             }
 
             is AppDrawerRow.Header -> (holder as HeaderViewHolder).bind(drawerRow.letter)
+
+            is AppDrawerRow.FolderRow -> {
+                val folder = drawerRow.folder
+                (holder as FolderViewHolder).bind(folder, drawerRow.isExpanded)
+                holder.itemView.setOnClickListener {
+                    toggleFolder(folder.id)
+                }
+                holder.itemView.setOnLongClickListener {
+                    listener.onFolderLongClicked(folder, it)
+                }
+            }
+
+            is AppDrawerRow.FolderItem -> {
+                val unlauncherApp = drawerRow.app
+                (holder as FolderItemViewHolder).bind(unlauncherApp)
+                holder.itemView.setOnClickListener {
+                    listener.onAppClicked(unlauncherApp)
+                }
+                holder.itemView.setOnLongClickListener {
+                    listener.onAppLongClicked(unlauncherApp, it)
+                }
+            }
         }
     }
 
@@ -67,7 +98,7 @@ class AppDrawerAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
-        return when (RowType.values()[viewType]) {
+        return when (RowType.entries.getOrNull(viewType) ?: throw IllegalArgumentException("Unknown viewType: $viewType")) {
             RowType.App -> ItemViewHolder(
                 inflater.inflate(R.layout.app_list_item, parent, false)
             )
@@ -75,7 +106,24 @@ class AppDrawerAdapter(
             RowType.Header -> HeaderViewHolder(
                 inflater.inflate(R.layout.app_drawer_fragment_header_item, parent, false)
             )
+
+            RowType.Folder -> FolderViewHolder(
+                inflater.inflate(R.layout.app_list_item, parent, false)
+            )
+
+            RowType.FolderApp -> FolderItemViewHolder(
+                inflater.inflate(R.layout.app_list_item, parent, false)
+            )
         }
+    }
+
+    private fun toggleFolder(folderId: String) {
+        if (expandedFolderIds.contains(folderId)) {
+            expandedFolderIds.remove(folderId)
+        } else {
+            expandedFolderIds.add(folderId)
+        }
+        updateFilteredApps()
     }
 
     private fun onlyFirstStringStartsWith(first: String, second: String, query: String): Boolean =
@@ -91,6 +139,7 @@ class AppDrawerAdapter(
         val corePreferences = corePreferencesRepo.get()
         val showDrawerHeadings = corePreferences.showDrawerHeadings
         val searchAllApps = corePreferences.searchAllAppsInDrawer && filterQuery != ""
+
         val displayableApps = apps
             .filter { app ->
                 (app.displayInDrawer || searchAllApps) &&
@@ -98,50 +147,115 @@ class AppDrawerAdapter(
                         .contains(filterQuery, ignoreCase = true)
             }
 
-        val includeHeadings = !showDrawerHeadings || filterQuery != ""
-        val updatedApps = when (includeHeadings) {
-            true ->
-                displayableApps
-                    .sortedWith { a, b ->
-                        when {
-                            // if an app's name starts with the query prefer it
-                            onlyFirstStringStartsWith(
-                                a.displayName,
-                                b.displayName,
-                                filterQuery
-                            ) -> -1
-                            onlyFirstStringStartsWith(
-                                b.displayName,
-                                a.displayName,
-                                filterQuery
-                            ) -> 1
-                            // if both or none start with the query sort in normal oder
-                            else -> a.displayName.compareTo(b.displayName, true)
-                        }
-                    }.map { AppDrawerRow.Item(it) }
-            // building a list with each letter and filtered app resulting in a list of
-            // [
-            // Header<"G">, App<"Gmail">, App<"Google Drive">, Header<"Y">, App<"YouTube">, ...
-            // ]
-            false ->
-                displayableApps
-                    .groupBy { app ->
-                        if (app.displayName.startsWith(workAppPrefix)) {
-                            workAppPrefix
-                        } else {
-                            app.displayName.firstUppercase()
-                        }
-                    }.flatMap { entry ->
-                        listOf(
-                            AppDrawerRow.Header(entry.key),
-                            *(entry.value.map { AppDrawerRow.Item(it) }).toTypedArray()
-                        )
+        val isFiltering = filterQuery != ""
+        val skipHeadings = !showDrawerHeadings || isFiltering
+
+        val updatedApps = if (isFiltering) {
+            // When filtering, show all matching apps flat (ignore folder grouping)
+            displayableApps
+                .sortedWith { a, b ->
+                    when {
+                        onlyFirstStringStartsWith(a.displayName, b.displayName, filterQuery) -> -1
+                        onlyFirstStringStartsWith(b.displayName, a.displayName, filterQuery) -> 1
+                        else -> a.displayName.compareTo(b.displayName, true)
                     }
+                }.map { AppDrawerRow.Item(it) }
+        } else if (skipHeadings) {
+            buildFlatListWithFolders(displayableApps)
+        } else {
+            buildHeadedListWithFolders(displayableApps)
         }
+
         if (updatedApps != filteredApps) {
             filteredApps = updatedApps
             notifyDataSetChanged()
         }
+    }
+
+    private fun buildFlatListWithFolders(displayableApps: List<UnlauncherApp>): List<AppDrawerRow> {
+        val nonFolderApps = displayableApps
+            .filter { app -> !app.hasFolderId() }
+            .sortedBy { it.displayName.uppercase(Locale.getDefault()) }
+            .map { Pair(it.displayName.uppercase(Locale.getDefault()), AppDrawerRow.Item(it)) }
+
+        val sortedFolderPairs = folders.mapNotNull { folder ->
+            val folderApps = displayableApps.filter { it.hasFolderId() && it.folderId == folder.id }
+            if (folderApps.isEmpty()) null else Pair(folder, folderApps)
+        }.sortedBy { it.first.displayName.uppercase(Locale.getDefault()) }
+
+        return mergeAppsAndFolders(nonFolderApps, sortedFolderPairs)
+    }
+
+    private fun buildHeadedListWithFolders(displayableApps: List<UnlauncherApp>): List<AppDrawerRow> {
+        // Group non-folder apps by first letter
+        val nonFolderApps = displayableApps
+            .filter { app -> !app.hasFolderId() }
+
+        val foldersByFirstLetter = folders.mapNotNull { folder ->
+            val folderApps = displayableApps.filter { it.hasFolderId() && it.folderId == folder.id }
+            if (folderApps.isEmpty()) null else Triple(
+                folder.displayName.firstUppercase(),
+                folder,
+                folderApps
+            )
+        }.groupBy { it.first }
+
+        val appsByFirstLetter = nonFolderApps.groupBy { app ->
+            if (app.displayName.startsWith(workAppPrefix)) workAppPrefix
+            else app.displayName.firstUppercase()
+        }
+
+        val allLetters = (appsByFirstLetter.keys + foldersByFirstLetter.keys).toSortedSet()
+
+        return allLetters.flatMap { letter ->
+            val letterHeader = listOf(AppDrawerRow.Header(letter))
+            val letterFolderRows = (foldersByFirstLetter[letter] ?: emptyList())
+                .sortedBy { it.second.displayName.uppercase(Locale.getDefault()) }
+                .flatMap { (_, folder, folderApps) ->
+                    val isExpanded = expandedFolderIds.contains(folder.id)
+                    listOf(AppDrawerRow.FolderRow(folder, isExpanded)) +
+                        if (isExpanded) {
+                            folderApps.sortedBy { it.displayName.uppercase(Locale.getDefault()) }
+                                .map { AppDrawerRow.FolderItem(it) }
+                        } else {
+                            emptyList()
+                        }
+                }
+            val letterAppRows = (appsByFirstLetter[letter] ?: emptyList())
+                .sortedBy { it.displayName.uppercase(Locale.getDefault()) }
+                .map { AppDrawerRow.Item(it) }
+
+            letterHeader + letterFolderRows + letterAppRows
+        }
+    }
+
+    private fun mergeAppsAndFolders(
+        nonFolderAppRows: List<Pair<String, AppDrawerRow.Item>>,
+        sortedFolderPairs: List<Pair<UnlauncherFolder, List<UnlauncherApp>>>
+    ): List<AppDrawerRow> {
+        val result = mutableListOf<AppDrawerRow>()
+        var appIdx = 0
+        var folderIdx = 0
+
+        while (appIdx < nonFolderAppRows.size || folderIdx < sortedFolderPairs.size) {
+            val appKey = nonFolderAppRows.getOrNull(appIdx)?.first
+            val folderKey = sortedFolderPairs.getOrNull(folderIdx)?.first?.displayName?.uppercase(Locale.getDefault())
+
+            if (appKey == null || (folderKey != null && folderKey <= appKey)) {
+                val (folder, folderApps) = sortedFolderPairs[folderIdx]
+                val isExpanded = expandedFolderIds.contains(folder.id)
+                result.add(AppDrawerRow.FolderRow(folder, isExpanded))
+                if (isExpanded) {
+                    folderApps.sortedBy { it.displayName.uppercase(Locale.getDefault()) }
+                        .forEach { result.add(AppDrawerRow.FolderItem(it)) }
+                }
+                folderIdx++
+            } else {
+                result.add(nonFolderAppRows[appIdx].second)
+                appIdx++
+            }
+        }
+        return result
     }
 
     val searchBoxListener: TextWatcher = object : TextWatcher {
@@ -179,15 +293,44 @@ class AppDrawerAdapter(
             header.text = letter
         }
     }
+
+    inner class FolderViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val item: TextView = itemView.findViewById(R.id.app_list_item_name)
+
+        override fun toString(): String = "${super.toString()} '${item.text}'"
+
+        fun bind(folder: UnlauncherFolder, isExpanded: Boolean) {
+            val prefix = if (isExpanded) FOLDER_EXPANDED_PREFIX else FOLDER_PREFIX
+            item.text = "$prefix${folder.displayName}"
+            item.gravity = gravity
+        }
+    }
+
+    inner class FolderItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val item: TextView = itemView.findViewById(R.id.app_list_item_name)
+
+        override fun toString(): String = "${super.toString()} '${item.text}'"
+
+        fun bind(app: UnlauncherApp) {
+            item.text = "$FOLDER_ITEM_INDENT${app.displayName}"
+            item.gravity = gravity
+        }
+    }
 }
 
 enum class RowType {
     Header,
-    App
+    App,
+    Folder,
+    FolderApp
 }
 
 sealed class AppDrawerRow(val rowType: RowType) {
     data class Item(val app: UnlauncherApp) : AppDrawerRow(RowType.App)
 
     data class Header(val letter: String) : AppDrawerRow(RowType.Header)
+
+    data class FolderRow(val folder: UnlauncherFolder, val isExpanded: Boolean) : AppDrawerRow(RowType.Folder)
+
+    data class FolderItem(val app: UnlauncherApp) : AppDrawerRow(RowType.FolderApp)
 }
