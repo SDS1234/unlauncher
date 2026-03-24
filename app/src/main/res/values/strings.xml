@@ -92,12 +92,12 @@
     <string name="quick_buttons_description_center">Settings Quick Button</string>
     <string name="quick_buttons_description_left">Phone Quick Button</string>
     <string name="quick_buttons_description_right">Camera Quick Button</string>
-    <string name="add_to_folder">Add to folder</string>
-    <string name="create_folder">Create folder</string>
-    <string name="delete_folder">Delete folder</string>
+    <string name="add_to_folder">Add to Folder</string>
+    <string name="create_folder">Create Folder</string>
+    <string name="delete_folder">Delete Folder</string>
     <string name="folder_name_hint">Folder name</string>
-    <string name="remove_from_folder">Remove from folder</string>
-    <string name="rename_folder">Rename folder</string>
+    <string name="remove_from_folder">Remove from Folder</string>
+    <string name="rename_folder">Rename Folder</string>
     <string name="rename_app">Rename App</string>
     <string name="shown">shown</string>
     <string name="uninstall">Uninstall</string>

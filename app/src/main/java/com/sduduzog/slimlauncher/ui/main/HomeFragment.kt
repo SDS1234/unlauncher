@@ -478,7 +478,8 @@ class HomeFragment : BaseFragment() {
             popupMenu.menu.add(0, R.id.rename_folder, 0, R.string.rename_folder)
             popupMenu.menu.add(0, R.id.delete_folder, 1, R.string.delete_folder)
             popupMenu.setOnMenuItemClickListener { item: MenuItem? ->
-                when (item!!.itemId) {
+                item ?: return@setOnMenuItemClickListener false
+                when (item.itemId) {
                     R.id.rename_folder -> showRenameFolderDialog(folder)
                     R.id.delete_folder -> showDeleteFolderConfirmation(folder)
                 }

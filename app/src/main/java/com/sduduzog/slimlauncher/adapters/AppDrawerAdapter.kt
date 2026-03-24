@@ -187,14 +187,16 @@ class AppDrawerAdapter(
 
         val nonFolderApps = displayableApps
             .filter { app -> !app.hasFolderId() }
-            .sortedBy { it.displayName.uppercase(Locale.getDefault()) }
             .map { Pair(it.displayName.uppercase(Locale.getDefault()), AppDrawerRow.Item(it)) }
+            .sortedBy { it.first }
 
-        val sortedFolderPairs = folders
-            .sortedBy { it.displayName.uppercase(Locale.getDefault()) }
-            .map { folder -> Pair(folder, appsByFolderId[folder.id] ?: emptyList()) }
+        val sortedFolderTriples = folders
+            .map { folder ->
+                Triple(folder.displayName.uppercase(Locale.getDefault()), folder, appsByFolderId[folder.id] ?: emptyList())
+            }
+            .sortedBy { it.first }
 
-        return mergeAppsAndFolders(nonFolderApps, sortedFolderPairs)
+        return mergeAppsAndFolders(nonFolderApps, sortedFolderTriples)
     }
 
     private fun buildHeadedListWithFolders(displayableApps: List<UnlauncherApp>): List<AppDrawerRow> {
@@ -244,18 +246,18 @@ class AppDrawerAdapter(
 
     private fun mergeAppsAndFolders(
         nonFolderAppRows: List<Pair<String, AppDrawerRow.Item>>,
-        sortedFolderPairs: List<Pair<UnlauncherFolder, List<UnlauncherApp>>>
+        sortedFolderTriples: List<Triple<String, UnlauncherFolder, List<UnlauncherApp>>>
     ): List<AppDrawerRow> {
         val result = mutableListOf<AppDrawerRow>()
         var appIdx = 0
         var folderIdx = 0
 
-        while (appIdx < nonFolderAppRows.size || folderIdx < sortedFolderPairs.size) {
+        while (appIdx < nonFolderAppRows.size || folderIdx < sortedFolderTriples.size) {
             val appKey = nonFolderAppRows.getOrNull(appIdx)?.first
-            val folderKey = sortedFolderPairs.getOrNull(folderIdx)?.first?.displayName?.uppercase(Locale.getDefault())
+            val folderKey = sortedFolderTriples.getOrNull(folderIdx)?.first
 
             if (appKey == null || (folderKey != null && folderKey <= appKey)) {
-                val (folder, folderApps) = sortedFolderPairs[folderIdx]
+                val (_, folder, folderApps) = sortedFolderTriples[folderIdx]
                 val isExpanded = expandedFolderIds.contains(folder.id)
                 result.add(AppDrawerRow.FolderRow(folder, isExpanded))
                 if (isExpanded) {
