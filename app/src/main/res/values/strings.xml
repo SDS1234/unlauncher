@@ -95,6 +95,7 @@
     <string name="add_to_folder">Add to Folder</string>
     <string name="create_folder">Create Folder</string>
     <string name="delete_folder">Delete Folder</string>
+    <string name="delete_folder_confirmation">Delete folder \"%1$s\"? Apps will be moved out of the folder.</string>
     <string name="folder_name_hint">Folder name</string>
     <string name="remove_from_folder">Remove from Folder</string>
     <string name="rename_folder">Rename Folder</string>

@@ -43,6 +43,8 @@ class AppDrawerAdapter(
         unlauncherAppsRepo.observe { unlauncherApps ->
             apps = unlauncherApps.appsList
             folders = unlauncherApps.foldersList
+            val currentFolderIds = folders.map { it.id }.toSet()
+            expandedFolderIds.retainAll(currentFolderIds)
             updateFilteredApps()
         }
         corePreferencesRepo.observe { corePrefs ->

@@ -407,13 +407,13 @@ class HomeFragment : BaseFragment() {
     inner class AppDrawerListener {
         @SuppressLint("DiscouragedPrivateApi")
         fun onAppLongClicked(app: UnlauncherApp, view: View): Boolean {
-            val popupMenu = PopupMenu(context, view)
+            val popupMenu = PopupMenu(requireContext(), view)
             popupMenu.inflate(R.menu.app_long_press_menu)
             hideUninstallOptionIfSystemApp(app, popupMenu)
 
             popupMenu.setOnMenuItemClickListener { item: MenuItem? ->
-
-                when (item!!.itemId) {
+                item ?: return@setOnMenuItemClickListener false
+                when (item.itemId) {
                     R.id.open -> {
                         onAppClicked(app)
                     }
@@ -567,7 +567,7 @@ class HomeFragment : BaseFragment() {
         private fun showDeleteFolderConfirmation(folder: UnlauncherFolder) {
             AlertDialog.Builder(requireContext())
                 .setTitle(R.string.delete_folder)
-                .setMessage("Delete folder \"${folder.displayName}\"? Apps will be moved out of the folder.")
+                .setMessage(getString(R.string.delete_folder_confirmation, folder.displayName))
                 .setPositiveButton(android.R.string.ok) { _, _ ->
                     unlauncherAppsRepo.updateAsync(deleteFolder(folder.id))
                 }
