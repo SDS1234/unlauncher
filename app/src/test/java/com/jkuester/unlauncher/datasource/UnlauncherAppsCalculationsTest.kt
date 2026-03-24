@@ -563,7 +563,19 @@ class UnlauncherAppsCalculationsTest {
 
         val updatedApps = deleteFolder("nonexistent")(originalApps)
 
-        updatedApps.foldersList shouldHaveSize 1
+        updatedApps shouldBe originalApps
+    }
+
+    @Test
+    fun deleteFolder_noFolderRecordNoAppsInFolder() {
+        val originalApps = UnlauncherApps
+            .newBuilder()
+            .addAllApps(listOf(unlauncherApp0, unlauncherApp1))
+            .build()
+
+        val updatedApps = deleteFolder("nonexistent")(originalApps)
+
+        updatedApps shouldBe originalApps
     }
 
     @Test

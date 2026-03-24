@@ -266,7 +266,7 @@ class HomeFragment : BaseFragment() {
         val homeFragment = HomeFragmentDefaultBinding.bind(requireView()).root
         homeFragmentContent.appDrawerEditText.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE && appDrawerAdapter.itemCount > 0) {
-                val firstApp = appDrawerAdapter.getFirstApp()
+                val firstApp = appDrawerAdapter.getFirstApp() ?: return@setOnEditorActionListener false
                 launchApp(firstApp.packageName, firstApp.className, firstApp.userSerial)
                 homeFragment.transitionToStart()
                 true
@@ -474,7 +474,7 @@ class HomeFragment : BaseFragment() {
         }
 
         fun onFolderLongClicked(folder: UnlauncherFolder, view: View): Boolean {
-            val popupMenu = PopupMenu(context, view)
+            val popupMenu = PopupMenu(requireContext(), view)
             popupMenu.menu.add(0, R.id.rename_folder, 0, R.string.rename_folder)
             popupMenu.menu.add(0, R.id.delete_folder, 1, R.string.delete_folder)
             popupMenu.setOnMenuItemClickListener { item: MenuItem? ->
@@ -500,7 +500,7 @@ class HomeFragment : BaseFragment() {
             options.add(getString(R.string.create_folder))
             existingFolders.forEach { options.add(it.displayName) }
 
-            AlertDialog.Builder(context)
+            AlertDialog.Builder(requireContext())
                 .setTitle(R.string.add_to_folder)
                 .setItems(options.toTypedArray()) { _, which ->
                     var optionIndex = which
@@ -522,10 +522,10 @@ class HomeFragment : BaseFragment() {
         }
 
         private fun showCreateFolderDialog(app: UnlauncherApp? = null) {
-            val editText = EditText(context).apply {
+            val editText = EditText(requireContext()).apply {
                 hint = getString(R.string.folder_name_hint)
             }
-            AlertDialog.Builder(context)
+            AlertDialog.Builder(requireContext())
                 .setTitle(R.string.create_folder)
                 .setView(editText)
                 .setPositiveButton(android.R.string.ok) { _, _ ->
@@ -547,10 +547,10 @@ class HomeFragment : BaseFragment() {
         }
 
         private fun showRenameFolderDialog(folder: UnlauncherFolder) {
-            val editText = EditText(context).apply {
+            val editText = EditText(requireContext()).apply {
                 setText(folder.displayName)
             }
-            AlertDialog.Builder(context)
+            AlertDialog.Builder(requireContext())
                 .setTitle(R.string.rename_folder)
                 .setView(editText)
                 .setPositiveButton(android.R.string.ok) { _, _ ->
@@ -564,9 +564,9 @@ class HomeFragment : BaseFragment() {
         }
 
         private fun showDeleteFolderConfirmation(folder: UnlauncherFolder) {
-            AlertDialog.Builder(context)
+            AlertDialog.Builder(requireContext())
                 .setTitle(R.string.delete_folder)
-                .setMessage(folder.displayName)
+                .setMessage("Delete folder \"${folder.displayName}\"? Apps will be moved out of the folder.")
                 .setPositiveButton(android.R.string.ok) { _, _ ->
                     unlauncherAppsRepo.updateAsync(deleteFolder(folder.id))
                 }

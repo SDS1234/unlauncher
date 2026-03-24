@@ -201,21 +201,30 @@ fun renameFolder(folderId: String, name: String): (UnlauncherApps) -> Unlauncher
 }
 
 fun deleteFolder(folderId: String): (UnlauncherApps) -> UnlauncherApps = { originalApps ->
-    val updatedApps = originalApps.appsList.map { app ->
-        if (app.hasFolderId() && app.folderId == folderId) {
-            app.toBuilder().clearFolderId().build()
-        } else {
-            app
-        }
+    val hasAppsInFolder = originalApps.appsList.any { app ->
+        app.hasFolderId() && app.folderId == folderId
     }
-    val updatedFolders = originalApps.foldersList.filter { it.id != folderId }
-    originalApps
-        .toBuilder()
-        .clearApps()
-        .addAllApps(updatedApps)
-        .clearFolders()
-        .addAllFolders(updatedFolders)
-        .build()
+    val hasFolder = originalApps.foldersList.any { it.id == folderId }
+
+    if (!hasAppsInFolder && !hasFolder) {
+        originalApps
+    } else {
+        val updatedApps = originalApps.appsList.map { app ->
+            if (app.hasFolderId() && app.folderId == folderId) {
+                app.toBuilder().clearFolderId().build()
+            } else {
+                app
+            }
+        }
+        val updatedFolders = originalApps.foldersList.filter { it.id != folderId }
+        originalApps
+            .toBuilder()
+            .clearApps()
+            .addAllApps(updatedApps)
+            .clearFolders()
+            .addAllFolders(updatedFolders)
+            .build()
+    }
 }
 
 fun setAppFolder(appToUpdate: UnlauncherApp, folderId: String?): (UnlauncherApps) -> UnlauncherApps =

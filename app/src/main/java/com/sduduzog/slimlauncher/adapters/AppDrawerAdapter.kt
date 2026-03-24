@@ -92,7 +92,15 @@ class AppDrawerAdapter(
         }
     }
 
-    fun getFirstApp(): UnlauncherApp = filteredApps.filterIsInstance<AppDrawerRow.Item>().first().app
+    fun getFirstApp(): UnlauncherApp? = filteredApps
+        .firstOrNull { it is AppDrawerRow.Item || it is AppDrawerRow.FolderItem }
+        ?.let { row ->
+            when (row) {
+                is AppDrawerRow.Item -> row.app
+                is AppDrawerRow.FolderItem -> row.app
+                else -> null
+            }
+        }
 
     override fun getItemViewType(position: Int): Int = filteredApps[position].rowType.ordinal
 
@@ -173,30 +181,35 @@ class AppDrawerAdapter(
     }
 
     private fun buildFlatListWithFolders(displayableApps: List<UnlauncherApp>): List<AppDrawerRow> {
+        val appsByFolderId = displayableApps
+            .filter { it.hasFolderId() }
+            .groupBy { it.folderId }
+
         val nonFolderApps = displayableApps
             .filter { app -> !app.hasFolderId() }
             .sortedBy { it.displayName.uppercase(Locale.getDefault()) }
             .map { Pair(it.displayName.uppercase(Locale.getDefault()), AppDrawerRow.Item(it)) }
 
-        val sortedFolderPairs = folders.mapNotNull { folder ->
-            val folderApps = displayableApps.filter { it.hasFolderId() && it.folderId == folder.id }
-            if (folderApps.isEmpty()) null else Pair(folder, folderApps)
-        }.sortedBy { it.first.displayName.uppercase(Locale.getDefault()) }
+        val sortedFolderPairs = folders
+            .sortedBy { it.displayName.uppercase(Locale.getDefault()) }
+            .map { folder -> Pair(folder, appsByFolderId[folder.id] ?: emptyList()) }
 
         return mergeAppsAndFolders(nonFolderApps, sortedFolderPairs)
     }
 
     private fun buildHeadedListWithFolders(displayableApps: List<UnlauncherApp>): List<AppDrawerRow> {
-        // Group non-folder apps by first letter
+        val appsByFolderId = displayableApps
+            .filter { it.hasFolderId() }
+            .groupBy { it.folderId }
+
         val nonFolderApps = displayableApps
             .filter { app -> !app.hasFolderId() }
 
-        val foldersByFirstLetter = folders.mapNotNull { folder ->
-            val folderApps = displayableApps.filter { it.hasFolderId() && it.folderId == folder.id }
-            if (folderApps.isEmpty()) null else Triple(
+        val foldersByFirstLetter = folders.map { folder ->
+            Triple(
                 folder.displayName.firstUppercase(),
                 folder,
-                folderApps
+                appsByFolderId[folder.id] ?: emptyList()
             )
         }.groupBy { it.first }
 
