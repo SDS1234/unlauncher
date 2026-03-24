@@ -187,7 +187,9 @@ class AppDrawerAdapter(
         val (appsWithKnownFolderId, nonFolderApps) = displayableApps.partition { app ->
             app.hasFolderId() && validFolderIds.contains(app.folderId)
         }
-        return appsWithKnownFolderId.groupBy { it.folderId } to nonFolderApps
+        return appsWithKnownFolderId
+            .groupBy { it.folderId }
+            .mapValues { (_, apps) -> apps.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName }) } to nonFolderApps
     }
 
     private fun buildFlatListWithFolders(displayableApps: List<UnlauncherApp>): List<AppDrawerRow> {
@@ -227,19 +229,18 @@ class AppDrawerAdapter(
         return allLetters.flatMap { letter ->
             val letterHeader = listOf(AppDrawerRow.Header(letter))
             val letterFolderRows = (foldersByFirstLetter[letter] ?: emptyList())
-                .sortedBy { it.second.displayName.uppercase(Locale.getDefault()) }
+                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.second.displayName })
                 .flatMap { (_, folder, folderApps) ->
                     val isExpanded = expandedFolderIds.contains(folder.id)
                     listOf(AppDrawerRow.FolderRow(folder, isExpanded)) +
                         if (isExpanded) {
-                            folderApps.sortedBy { it.displayName.uppercase(Locale.getDefault()) }
-                                .map { AppDrawerRow.FolderItem(it) }
+                            folderApps.map { AppDrawerRow.FolderItem(it) }
                         } else {
                             emptyList()
                         }
                 }
             val letterAppRows = (appsByFirstLetter[letter] ?: emptyList())
-                .sortedBy { it.displayName.uppercase(Locale.getDefault()) }
+                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
                 .map { AppDrawerRow.Item(it) }
 
             letterHeader + letterFolderRows + letterAppRows
@@ -263,8 +264,7 @@ class AppDrawerAdapter(
                 val isExpanded = expandedFolderIds.contains(folder.id)
                 result.add(AppDrawerRow.FolderRow(folder, isExpanded))
                 if (isExpanded) {
-                    folderApps.sortedBy { it.displayName.uppercase(Locale.getDefault()) }
-                        .forEach { result.add(AppDrawerRow.FolderItem(it)) }
+                    folderApps.forEach { result.add(AppDrawerRow.FolderItem(it)) }
                 }
                 folderIdx++
             } else {
