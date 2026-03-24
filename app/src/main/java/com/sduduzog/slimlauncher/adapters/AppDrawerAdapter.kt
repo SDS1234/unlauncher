@@ -196,12 +196,12 @@ class AppDrawerAdapter(
         val (appsByFolderId, nonFolderApps) = groupAppsByFolder(displayableApps)
 
         val sortedNonFolderApps = nonFolderApps
-            .map { Pair(it.displayName.uppercase(Locale.getDefault()), AppDrawerRow.Item(it)) }
+            .map { Pair(it.displayName.uppercase(Locale.ROOT), AppDrawerRow.Item(it)) }
             .sortedBy { it.first }
 
         val sortedFolderTriples = folders
             .map { folder ->
-                Triple(folder.displayName.uppercase(Locale.getDefault()), folder, appsByFolderId[folder.id] ?: emptyList())
+                Triple(folder.displayName.uppercase(Locale.ROOT), folder, appsByFolderId[folder.id] ?: emptyList())
             }
             .sortedBy { it.first }
 

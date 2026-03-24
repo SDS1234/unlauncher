@@ -517,6 +517,25 @@ class UnlauncherAppsCalculationsTest {
     }
 
     @Test
+    fun createFolder_blankName() {
+        val originalApps = UnlauncherApps.newBuilder().build()
+
+        val updatedApps = createFolder("   ")(originalApps)
+
+        updatedApps shouldBe originalApps
+    }
+
+    @Test
+    fun createFolder_trimsName() {
+        val originalApps = UnlauncherApps.newBuilder().build()
+
+        val updatedApps = createFolder("  Bank  ")(originalApps)
+
+        updatedApps.foldersList shouldHaveSize 1
+        updatedApps.foldersList[0].displayName shouldBe "Bank"
+    }
+
+    @Test
     fun renameFolder() {
         val originalFolder = UnlauncherFolder.newBuilder().setId("folder1").setDisplayName("Bank").build()
         val originalApps = UnlauncherApps.newBuilder().addFolders(originalFolder).build()
@@ -536,6 +555,26 @@ class UnlauncherAppsCalculationsTest {
         val updatedApps = renameFolder("nonexistent", "Finance")(originalApps)
 
         updatedApps shouldBe originalApps
+    }
+
+    @Test
+    fun renameFolder_blankName() {
+        val originalFolder = UnlauncherFolder.newBuilder().setId("folder1").setDisplayName("Bank").build()
+        val originalApps = UnlauncherApps.newBuilder().addFolders(originalFolder).build()
+
+        val updatedApps = renameFolder("folder1", "   ")(originalApps)
+
+        updatedApps shouldBe originalApps
+    }
+
+    @Test
+    fun renameFolder_trimsName() {
+        val originalFolder = UnlauncherFolder.newBuilder().setId("folder1").setDisplayName("Bank").build()
+        val originalApps = UnlauncherApps.newBuilder().addFolders(originalFolder).build()
+
+        val updatedApps = renameFolder("folder1", "  Finance  ")(originalApps)
+
+        updatedApps.foldersList[0].displayName shouldBe "Finance"
     }
 
     @Test
@@ -576,6 +615,21 @@ class UnlauncherAppsCalculationsTest {
         val updatedApps = deleteFolder("nonexistent")(originalApps)
 
         updatedApps shouldBe originalApps
+    }
+
+    @Test
+    fun deleteFolder_emptyFolder() {
+        val folder = UnlauncherFolder.newBuilder().setId("folder1").setDisplayName("Bank").build()
+        val originalApps = UnlauncherApps
+            .newBuilder()
+            .addFolders(folder)
+            .addAllApps(listOf(unlauncherApp0, unlauncherApp1))
+            .build()
+
+        val updatedApps = deleteFolder("folder1")(originalApps)
+
+        updatedApps.foldersList shouldHaveSize 0
+        updatedApps.appsList shouldBe originalApps.appsList
     }
 
     @Test

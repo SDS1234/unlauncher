@@ -179,22 +179,28 @@ fun setDisplayInDrawer(appToUpdate: UnlauncherApp, displayInDrawer: Boolean): (U
 fun setVersion(version: Int): (UnlauncherApps) -> UnlauncherApps = { it.toBuilder().setVersion(version).build() }
 
 fun createFolder(name: String): (UnlauncherApps) -> UnlauncherApps = { originalApps ->
-    val folder = UnlauncherFolder
-        .newBuilder()
-        .setId(UUID.randomUUID().toString())
-        .setDisplayName(name)
-        .build()
-    originalApps.toBuilder().addFolders(folder).build()
+    val normalizedName = name.trim()
+    if (normalizedName.isEmpty()) {
+        originalApps
+    } else {
+        val folder = UnlauncherFolder
+            .newBuilder()
+            .setId(UUID.randomUUID().toString())
+            .setDisplayName(normalizedName)
+            .build()
+        originalApps.toBuilder().addFolders(folder).build()
+    }
 }
 
 fun renameFolder(folderId: String, name: String): (UnlauncherApps) -> UnlauncherApps = { originalApps ->
     val folderIndex = originalApps.foldersList.indexOfFirst { it.id == folderId }
-    if (folderIndex == -1) {
+    val normalizedName = name.trim()
+    if (folderIndex == -1 || normalizedName.isEmpty()) {
         originalApps
     } else {
         val updatedFolder = originalApps.foldersList[folderIndex]
             .toBuilder()
-            .setDisplayName(name)
+            .setDisplayName(normalizedName)
             .build()
         originalApps.toBuilder().setFolders(folderIndex, updatedFolder).build()
     }
@@ -209,21 +215,24 @@ fun deleteFolder(folderId: String): (UnlauncherApps) -> UnlauncherApps = { origi
     if (!hasAppsInFolder && !hasFolder) {
         originalApps
     } else {
-        val updatedApps = originalApps.appsList.map { app ->
-            if (app.hasFolderId() && app.folderId == folderId) {
-                app.toBuilder().clearFolderId().build()
-            } else {
-                app
-            }
-        }
         val updatedFolders = originalApps.foldersList.filter { it.id != folderId }
-        originalApps
+        val builder = originalApps
             .toBuilder()
-            .clearApps()
-            .addAllApps(updatedApps)
             .clearFolders()
             .addAllFolders(updatedFolders)
-            .build()
+
+        if (hasAppsInFolder) {
+            val updatedApps = originalApps.appsList.map { app ->
+                if (app.hasFolderId() && app.folderId == folderId) {
+                    app.toBuilder().clearFolderId().build()
+                } else {
+                    app
+                }
+            }
+            builder.clearApps().addAllApps(updatedApps)
+        }
+
+        builder.build()
     }
 }
 
