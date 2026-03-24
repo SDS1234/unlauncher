@@ -182,13 +182,18 @@ class AppDrawerAdapter(
         }
     }
 
-    private fun buildFlatListWithFolders(displayableApps: List<UnlauncherApp>): List<AppDrawerRow> {
-        val appsByFolderId = displayableApps
-            .filter { it.hasFolderId() }
-            .groupBy { it.folderId }
+    private fun groupAppsByFolder(displayableApps: List<UnlauncherApp>): Pair<Map<String, List<UnlauncherApp>>, List<UnlauncherApp>> {
+        val validFolderIds = folders.map { it.id }.toSet()
+        val (appsWithKnownFolderId, nonFolderApps) = displayableApps.partition { app ->
+            app.hasFolderId() && validFolderIds.contains(app.folderId)
+        }
+        return appsWithKnownFolderId.groupBy { it.folderId } to nonFolderApps
+    }
 
-        val nonFolderApps = displayableApps
-            .filter { app -> !app.hasFolderId() }
+    private fun buildFlatListWithFolders(displayableApps: List<UnlauncherApp>): List<AppDrawerRow> {
+        val (appsByFolderId, nonFolderApps) = groupAppsByFolder(displayableApps)
+
+        val sortedNonFolderApps = nonFolderApps
             .map { Pair(it.displayName.uppercase(Locale.getDefault()), AppDrawerRow.Item(it)) }
             .sortedBy { it.first }
 
@@ -198,16 +203,11 @@ class AppDrawerAdapter(
             }
             .sortedBy { it.first }
 
-        return mergeAppsAndFolders(nonFolderApps, sortedFolderTriples)
+        return mergeAppsAndFolders(sortedNonFolderApps, sortedFolderTriples)
     }
 
     private fun buildHeadedListWithFolders(displayableApps: List<UnlauncherApp>): List<AppDrawerRow> {
-        val appsByFolderId = displayableApps
-            .filter { it.hasFolderId() }
-            .groupBy { it.folderId }
-
-        val nonFolderApps = displayableApps
-            .filter { app -> !app.hasFolderId() }
+        val (appsByFolderId, nonFolderApps) = groupAppsByFolder(displayableApps)
 
         val foldersByFirstLetter = folders.map { folder ->
             Triple(
