@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.fragment.app.Fragment
 import com.jkuester.unlauncher.bindings.setupCustomizeAppDrawerBackButton
+import com.jkuester.unlauncher.bindings.setupFolderIconStyleButton
 import com.jkuester.unlauncher.bindings.setupSearchFieldOptionsButton
 import com.jkuester.unlauncher.bindings.setupShowHeadingSwitch
 import com.jkuester.unlauncher.bindings.setupVisibleAppsButton
@@ -38,5 +39,6 @@ class CustomizeAppDrawerFragment : Fragment() {
             .also(setupCustomizeAppDrawerBackButton(iActivity))
             .also(setupSearchFieldOptionsButton(corePreferencesRepo, iResources))
             .also(setupShowHeadingSwitch(corePreferencesRepo))
+            .also(setupFolderIconStyleButton(corePreferencesRepo, childFragmentManager, iResources))
     }
 }

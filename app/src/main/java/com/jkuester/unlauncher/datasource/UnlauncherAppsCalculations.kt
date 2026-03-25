@@ -2,10 +2,12 @@ package com.jkuester.unlauncher.datasource
 
 import com.jkuester.unlauncher.datastore.proto.UnlauncherApp
 import com.jkuester.unlauncher.datastore.proto.UnlauncherApps
+import com.jkuester.unlauncher.datastore.proto.UnlauncherFolder
 import com.jkuester.unlauncher.swap
 import com.sduduzog.slimlauncher.data.model.App
 import com.sduduzog.slimlauncher.models.HomeApp
 import java.util.Locale
+import java.util.UUID
 
 private fun appMatches(unlauncherApp: UnlauncherApp, packageName: String, className: String) =
     unlauncherApp.packageName == packageName && unlauncherApp.className == className
@@ -175,3 +177,69 @@ fun setDisplayInDrawer(appToUpdate: UnlauncherApp, displayInDrawer: Boolean): (U
     updateApp(appToUpdate) { it.toBuilder().setDisplayInDrawer(displayInDrawer).build() }
 
 fun setVersion(version: Int): (UnlauncherApps) -> UnlauncherApps = { it.toBuilder().setVersion(version).build() }
+
+fun createFolder(name: String): (UnlauncherApps) -> UnlauncherApps = { originalApps ->
+    val normalizedName = name.trim()
+    if (normalizedName.isEmpty()) {
+        originalApps
+    } else {
+        val folder = UnlauncherFolder
+            .newBuilder()
+            .setId(UUID.randomUUID().toString())
+            .setDisplayName(normalizedName)
+            .build()
+        originalApps.toBuilder().addFolders(folder).build()
+    }
+}
+
+fun renameFolder(folderId: String, name: String): (UnlauncherApps) -> UnlauncherApps = { originalApps ->
+    val folderIndex = originalApps.foldersList.indexOfFirst { it.id == folderId }
+    val normalizedName = name.trim()
+    if (folderIndex == -1 || normalizedName.isEmpty()) {
+        originalApps
+    } else {
+        val updatedFolder = originalApps.foldersList[folderIndex]
+            .toBuilder()
+            .setDisplayName(normalizedName)
+            .build()
+        originalApps.toBuilder().setFolders(folderIndex, updatedFolder).build()
+    }
+}
+
+fun deleteFolder(folderId: String): (UnlauncherApps) -> UnlauncherApps = { originalApps ->
+    val hasAppsInFolder = originalApps.appsList.any { app ->
+        app.hasFolderId() && app.folderId == folderId
+    }
+    val hasFolder = originalApps.foldersList.any { it.id == folderId }
+
+    if (!hasAppsInFolder && !hasFolder) {
+        originalApps
+    } else {
+        val updatedFolders = originalApps.foldersList.filter { it.id != folderId }
+        val builder = originalApps
+            .toBuilder()
+            .clearFolders()
+            .addAllFolders(updatedFolders)
+
+        if (hasAppsInFolder) {
+            val updatedApps = originalApps.appsList.map { app ->
+                if (app.hasFolderId() && app.folderId == folderId) {
+                    app.toBuilder().clearFolderId().build()
+                } else {
+                    app
+                }
+            }
+            builder.clearApps().addAllApps(updatedApps)
+        }
+
+        builder.build()
+    }
+}
+
+fun setAppFolder(appToUpdate: UnlauncherApp, folderId: String?): (UnlauncherApps) -> UnlauncherApps =
+    updateApp(appToUpdate) { app ->
+        when (folderId) {
+            null -> app.toBuilder().clearFolderId().build()
+            else -> app.toBuilder().setFolderId(folderId).build()
+        }
+    }

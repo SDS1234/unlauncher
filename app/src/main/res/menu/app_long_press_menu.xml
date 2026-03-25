@@ -17,6 +17,10 @@
         android:title="@string/rename_app"
         android:icon="@drawable/ic_rename_app" />
     <item
+        android:id="@+id/add_to_folder"
+        android:title="@string/add_to_folder"
+        android:icon="@drawable/ic_folder" />
+    <item
         android:id="@+id/uninstall"
         android:title="@string/uninstall"
         android:icon="@drawable/ic_uninstall_app" />

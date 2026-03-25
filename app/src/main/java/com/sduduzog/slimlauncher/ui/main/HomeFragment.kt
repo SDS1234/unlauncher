@@ -2,6 +2,7 @@ package com.sduduzog.slimlauncher.ui.main
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -17,13 +18,14 @@ import android.provider.CalendarContract
 import android.provider.MediaStore
 import android.provider.Settings
 import android.text.format.DateFormat
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.View.OnClickListener
 import android.view.ViewGroup
-import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
 import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
@@ -32,9 +34,13 @@ import androidx.constraintlayout.motion.widget.MotionLayout
 import androidx.constraintlayout.motion.widget.MotionLayout.TransitionListener
 import androidx.navigation.Navigation
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.jkuester.unlauncher.datasource.createFolder
 import com.jkuester.unlauncher.datasource.DataRepository
+import com.jkuester.unlauncher.datasource.deleteFolder
 import com.jkuester.unlauncher.datasource.getHomeApps
 import com.jkuester.unlauncher.datasource.getIconResourceId
+import com.jkuester.unlauncher.datasource.renameFolder
+import com.jkuester.unlauncher.datasource.setAppFolder
 import com.jkuester.unlauncher.datasource.setApps
 import com.jkuester.unlauncher.datasource.setDisplayInDrawer
 import com.jkuester.unlauncher.datastore.proto.ClockType
@@ -44,14 +50,15 @@ import com.jkuester.unlauncher.datastore.proto.SearchBarPosition
 import com.jkuester.unlauncher.datastore.proto.TimeFormat
 import com.jkuester.unlauncher.datastore.proto.UnlauncherApp
 import com.jkuester.unlauncher.datastore.proto.UnlauncherApps
+import com.jkuester.unlauncher.datastore.proto.UnlauncherFolder
 import com.jkuester.unlauncher.dialog.RenameAppDisplayNameDialog
 import com.jkuester.unlauncher.fragment.WithFragmentLifecycle
-import com.sduduzog.slimlauncher.R
 import com.sduduzog.slimlauncher.adapters.AppDrawerAdapter
 import com.sduduzog.slimlauncher.adapters.HomeAdapter
 import com.sduduzog.slimlauncher.databinding.HomeFragmentBottomBinding
 import com.sduduzog.slimlauncher.databinding.HomeFragmentContentBinding
 import com.sduduzog.slimlauncher.databinding.HomeFragmentDefaultBinding
+import com.sduduzog.slimlauncher.R
 import com.sduduzog.slimlauncher.utils.BaseFragment
 import com.sduduzog.slimlauncher.utils.isSystemApp
 import dagger.hilt.android.AndroidEntryPoint
@@ -259,7 +266,7 @@ class HomeFragment : BaseFragment() {
         val homeFragment = HomeFragmentDefaultBinding.bind(requireView()).root
         homeFragmentContent.appDrawerEditText.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE && appDrawerAdapter.itemCount > 0) {
-                val firstApp = appDrawerAdapter.getFirstApp()
+                val firstApp = appDrawerAdapter.getFirstApp() ?: return@setOnEditorActionListener false
                 launchApp(firstApp.packageName, firstApp.className, firstApp.userSerial)
                 homeFragment.transitionToStart()
                 true
@@ -400,13 +407,13 @@ class HomeFragment : BaseFragment() {
     inner class AppDrawerListener {
         @SuppressLint("DiscouragedPrivateApi")
         fun onAppLongClicked(app: UnlauncherApp, view: View): Boolean {
-            val popupMenu = PopupMenu(context, view)
+            val popupMenu = PopupMenu(requireContext(), view)
             popupMenu.inflate(R.menu.app_long_press_menu)
             hideUninstallOptionIfSystemApp(app, popupMenu)
 
             popupMenu.setOnMenuItemClickListener { item: MenuItem? ->
-
-                when (item!!.itemId) {
+                item ?: return@setOnMenuItemClickListener false
+                when (item.itemId) {
                     R.id.open -> {
                         onAppClicked(app)
                     }
@@ -427,6 +434,9 @@ class HomeFragment : BaseFragment() {
                     R.id.rename -> {
                         RenameAppDisplayNameDialog(app)
                             .showNow(childFragmentManager, null)
+                    }
+                    R.id.add_to_folder -> {
+                        showFolderPickerForApp(app)
                     }
                     R.id.uninstall -> {
                         val intent = Intent(Intent.ACTION_DELETE)
@@ -461,6 +471,108 @@ class HomeFragment : BaseFragment() {
             launchApp(app.packageName, app.className, app.userSerial)
             val homeFragment = HomeFragmentDefaultBinding.bind(requireView()).root
             homeFragment.transitionToStart()
+        }
+
+        fun onFolderLongClicked(folder: UnlauncherFolder, view: View): Boolean {
+            val popupMenu = PopupMenu(requireContext(), view)
+            popupMenu.menu.add(0, R.id.rename_folder, 0, R.string.rename_folder)
+            popupMenu.menu.add(0, R.id.delete_folder, 1, R.string.delete_folder)
+            popupMenu.setOnMenuItemClickListener { item: MenuItem? ->
+                item ?: return@setOnMenuItemClickListener false
+                when (item.itemId) {
+                    R.id.rename_folder -> showRenameFolderDialog(folder)
+                    R.id.delete_folder -> showDeleteFolderConfirmation(folder)
+                }
+                true
+            }
+            popupMenu.show()
+            return true
+        }
+
+        private fun showFolderPickerForApp(app: UnlauncherApp) {
+            val currentApps = unlauncherAppsRepo.get()
+            val existingFolders = currentApps.foldersList
+            val isInFolder = app.hasFolderId()
+
+            val options = mutableListOf<String>()
+            if (isInFolder) {
+                options.add(getString(R.string.remove_from_folder))
+            }
+            options.add(getString(R.string.create_folder))
+            existingFolders.forEach { options.add(it.displayName) }
+
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.add_to_folder)
+                .setItems(options.toTypedArray()) { _, which ->
+                    var optionIndex = which
+                    if (isInFolder) {
+                        if (optionIndex == 0) {
+                            unlauncherAppsRepo.updateAsync(setAppFolder(app, null))
+                            return@setItems
+                        }
+                        optionIndex--
+                    }
+                    if (optionIndex == 0) {
+                        showCreateFolderDialog(app)
+                    } else {
+                        val selectedFolder = existingFolders[optionIndex - 1]
+                        unlauncherAppsRepo.updateAsync(setAppFolder(app, selectedFolder.id))
+                    }
+                }
+                .show()
+        }
+
+        private fun showCreateFolderDialog(app: UnlauncherApp? = null) {
+            val editText = EditText(requireContext()).apply {
+                hint = getString(R.string.folder_name_hint)
+            }
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.create_folder)
+                .setView(editText)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    val name = editText.text.toString().trim()
+                    if (name.isNotEmpty()) {
+                        if (app != null) {
+                            unlauncherAppsRepo.updateAsync { appsData ->
+                                val updated = createFolder(name)(appsData)
+                                val newFolder = updated.foldersList.last()
+                                setAppFolder(app, newFolder.id)(updated)
+                            }
+                        } else {
+                            unlauncherAppsRepo.updateAsync(createFolder(name))
+                        }
+                    }
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+
+        private fun showRenameFolderDialog(folder: UnlauncherFolder) {
+            val editText = EditText(requireContext()).apply {
+                setText(folder.displayName)
+            }
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.rename_folder)
+                .setView(editText)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    val name = editText.text.toString().trim()
+                    if (name.isNotEmpty()) {
+                        unlauncherAppsRepo.updateAsync(renameFolder(folder.id, name))
+                    }
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+
+        private fun showDeleteFolderConfirmation(folder: UnlauncherFolder) {
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.delete_folder)
+                .setMessage(getString(R.string.delete_folder_confirmation, folder.displayName))
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    unlauncherAppsRepo.updateAsync(deleteFolder(folder.id))
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
         }
     }
 }

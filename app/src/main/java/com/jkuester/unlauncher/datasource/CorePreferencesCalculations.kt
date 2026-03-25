@@ -3,6 +3,7 @@ package com.jkuester.unlauncher.datasource
 import com.jkuester.unlauncher.datastore.proto.AlignmentFormat
 import com.jkuester.unlauncher.datastore.proto.ClockType
 import com.jkuester.unlauncher.datastore.proto.CorePreferences
+import com.jkuester.unlauncher.datastore.proto.FolderIconStyle
 import com.jkuester.unlauncher.datastore.proto.SearchBarPosition
 import com.jkuester.unlauncher.datastore.proto.Theme
 import com.jkuester.unlauncher.datastore.proto.TimeFormat
@@ -43,6 +44,9 @@ fun setHideStatusBar(hideStatusBar: Boolean) = { originalPrefs: CorePreferences 
 }
 fun toggleHideStatusBar() = { originalPrefs: CorePreferences ->
     setHideStatusBar(!originalPrefs.hideStatusBar)(originalPrefs)
+}
+fun setFolderIconStyle(folderIconStyle: FolderIconStyle) = { originalPrefs: CorePreferences ->
+    originalPrefs.toBuilder().setFolderIconStyle(folderIconStyle).build()
 }
 
 private val STYLE_RESOURCES_BY_THEME = mapOf(
