@@ -20,9 +20,8 @@ import com.sduduzog.slimlauncher.utils.firstUppercase
 import com.sduduzog.slimlauncher.utils.gravity
 import java.util.Locale
 
-private const val FOLDER_PREFIX = "\uD83D\uDCC1 " // 📁
-private const val FOLDER_EXPANDED_PREFIX = "\uD83D\uDCC2 " // 📂
-private const val FOLDER_ITEM_INDENT = "  "
+private const val FOLDER_PREFIX = "\u25B8 " // ▸ (right-pointing small triangle)
+private const val FOLDER_EXPANDED_PREFIX = "\u25BE " // ▾ (down-pointing small triangle)
 
 class AppDrawerAdapter(
     private val listener: HomeFragment.AppDrawerListener,
@@ -161,8 +160,31 @@ class AppDrawerAdapter(
         val skipHeadings = !showDrawerHeadings || isFiltering
 
         val updatedApps = if (isFiltering) {
-            // When filtering, show all matching apps flat (ignore folder grouping)
-            displayableApps
+            val validFolderIds = folders.map { it.id }.toSet()
+
+            // Folders whose name matches the query
+            val matchingFolders = folders.filter { folder ->
+                regex.replace(folder.displayName, "").contains(filterQuery, ignoreCase = true)
+            }
+            val matchingFolderIds = matchingFolders.map { it.id }.toSet()
+
+            // All apps grouped by folder id (for rendering matched folders with all their apps)
+            val allAppsInFolders = apps
+                .filter { it.hasFolderId() && validFolderIds.contains(it.folderId) }
+                .groupBy { it.folderId }
+
+            // Folder rows: matching folders shown expanded (isExpanded = true) with all their apps
+            val folderRows = matchingFolders
+                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
+                .flatMap { folder ->
+                    val folderApps = (allAppsInFolders[folder.id] ?: emptyList())
+                        .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
+                    listOf(AppDrawerRow.FolderRow(folder, isExpanded = true)) + folderApps.map { AppDrawerRow.FolderItem(it) }
+                }
+
+            // App rows: name-matching apps NOT already shown inside a matched folder
+            val appRows = displayableApps
+                .filter { app -> !app.hasFolderId() || !matchingFolderIds.contains(app.folderId) }
                 .sortedWith { a, b ->
                     when {
                         onlyFirstStringStartsWith(a.displayName, b.displayName, filterQuery) -> -1
@@ -170,6 +192,8 @@ class AppDrawerAdapter(
                         else -> a.displayName.compareTo(b.displayName, true)
                     }
                 }.map { AppDrawerRow.Item(it) }
+
+            folderRows + appRows
         } else if (skipHeadings) {
             buildFlatListWithFolders(displayableApps)
         } else {
@@ -228,22 +252,26 @@ class AppDrawerAdapter(
 
         return allLetters.flatMap { letter ->
             val letterHeader = listOf(AppDrawerRow.Header(letter))
-            val letterFolderRows = (foldersByFirstLetter[letter] ?: emptyList())
-                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.second.displayName })
-                .flatMap { (_, folder, folderApps) ->
-                    val isExpanded = expandedFolderIds.contains(folder.id)
-                    listOf(AppDrawerRow.FolderRow(folder, isExpanded)) +
-                        if (isExpanded) {
-                            folderApps.map { AppDrawerRow.FolderItem(it) }
-                        } else {
-                            emptyList()
-                        }
-                }
-            val letterAppRows = (appsByFirstLetter[letter] ?: emptyList())
-                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
-                .map { AppDrawerRow.Item(it) }
 
-            letterHeader + letterFolderRows + letterAppRows
+            // Build folder entries: each folder row + optional expanded items, tagged with sort key
+            val folderEntries = (foldersByFirstLetter[letter] ?: emptyList())
+                .map { (_, folder, folderApps) ->
+                    val isExpanded = expandedFolderIds.contains(folder.id)
+                    val rows: List<AppDrawerRow> = listOf(AppDrawerRow.FolderRow(folder, isExpanded)) +
+                        if (isExpanded) folderApps.map { AppDrawerRow.FolderItem(it) } else emptyList()
+                    Pair(folder.displayName, rows)
+                }
+
+            // Build app entries, tagged with sort key
+            val appEntries: List<Pair<String, List<AppDrawerRow>>> = (appsByFirstLetter[letter] ?: emptyList())
+                .map { app -> Pair(app.displayName, listOf(AppDrawerRow.Item(app))) }
+
+            // Interleave folders and apps alphabetically within this letter group
+            val mergedRows = (folderEntries + appEntries)
+                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.first })
+                .flatMap { it.second }
+
+            letterHeader + mergedRows
         }
     }
 
@@ -326,11 +354,25 @@ class AppDrawerAdapter(
     inner class FolderItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val item: TextView = itemView.findViewById(R.id.app_list_item_name)
 
+        // Capture the base padding and the rendered prefix width once at construction (before
+        // any bind calls) so that repeated bind() calls on a recycled holder are allocation-free
+        // and don't accumulate extra padding.
+        private val basePaddingStart = item.paddingStart
+        private val prefixWidth = item.paint.measureText(FOLDER_PREFIX).toInt()
+
         override fun toString(): String = "${super.toString()} '${item.text}'"
 
         fun bind(app: UnlauncherApp) {
-            item.text = "$FOLDER_ITEM_INDENT${app.displayName}"
+            item.text = app.displayName
             item.gravity = gravity
+            // Indent by the exact rendered width of the folder prefix so folder items
+            // align with the folder name text regardless of the user's alignment setting.
+            item.setPaddingRelative(
+                basePaddingStart + prefixWidth,
+                item.paddingTop,
+                item.paddingEnd,
+                item.paddingBottom
+            )
         }
     }
 }
