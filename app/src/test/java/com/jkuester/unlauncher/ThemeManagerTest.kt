@@ -186,6 +186,7 @@ class ThemeManagerTest {
             verify(exactly = 0) { wallpaperManager.setBitmap(any()) }
         }
 
+        @Suppress("DEPRECATION")
         @Test
         fun setWallpaper_toScreenResolution_AndroidLowerThanR() = runTest {
             every { corePrefsStore.data } returns flowOf(prefsDoNotKeepWallpaper)

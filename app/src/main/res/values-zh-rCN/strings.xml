@@ -63,7 +63,7 @@
     <string name="customize_app_drawer_fragment_search_bar_position">位置</string>
     <string name="customize_app_drawer_fragment_search_field_options">搜索栏选项</string>
     <string name="customize_app_drawer_fragment_search_field_options_subtitle_status_hidden">隐藏搜索栏</string>
-    <string name="customize_app_drawer_fragment_search_field_options_subtitle_status_shown">位于 %s，键盘为 %s</string>
+    <string name="customize_app_drawer_fragment_search_field_options_subtitle_status_shown" formatted="false">位于 %s，键盘为 %s</string>
     <string name="customize_app_drawer_fragment_show_headings">显示分组</string>
     <string name="customize_app_drawer_fragment_show_headings_subtitle">按应用英文名首字母将应用分组</string>
     <string name="customize_app_drawer_fragment_show_search_bar">显示搜索栏</string>

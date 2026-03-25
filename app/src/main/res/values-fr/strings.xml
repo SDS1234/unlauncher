@@ -60,7 +60,7 @@
     <string name="customize_app_drawer_fragment_search_bar_position">Position</string>
     <string name="customize_app_drawer_fragment_search_field_options">Options du champ de recherche</string>
     <string name="customize_app_drawer_fragment_search_field_options_subtitle_status_hidden">Le champ de recherche est masqué</string>
-    <string name="customize_app_drawer_fragment_search_field_options_subtitle_status_shown">Position %s, clavier %s</string>
+    <string name="customize_app_drawer_fragment_search_field_options_subtitle_status_shown" formatted="false">Position %s, clavier %s</string>
     <string name="customize_app_drawer_fragment_show_headings">Afficher les regroupements</string>
     <string name="customize_app_drawer_fragment_show_headings_subtitle">Séparer les applications par groupes alphabétiques</string>
     <string name="customize_app_drawer_fragment_show_search_bar">Afficher le champ de recherche</string>

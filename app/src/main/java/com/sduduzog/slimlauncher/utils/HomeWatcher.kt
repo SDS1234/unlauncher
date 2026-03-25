@@ -12,6 +12,7 @@ open class HomeWatcher(internal val context: Context) {
 
     private var listener: OnHomePressedListener? = null
     internal var receiver: InnerReceiver? = null
+    @Suppress("DEPRECATION")
     internal val filter = IntentFilter(Intent.ACTION_CLOSE_SYSTEM_DIALOGS)
 
     companion object {
@@ -43,6 +44,7 @@ open class HomeWatcher(internal val context: Context) {
 
     inner class InnerReceiver : BroadcastReceiver() {
 
+        @Suppress("DEPRECATION")
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent == null) return
             if (intent.action != Intent.ACTION_CLOSE_SYSTEM_DIALOGS) return

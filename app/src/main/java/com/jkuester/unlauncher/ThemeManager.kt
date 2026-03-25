@@ -17,6 +17,7 @@ import com.jkuester.unlauncher.datastore.proto.Theme
 import com.sduduzog.slimlauncher.utils.isDefaultLauncher
 import kotlinx.coroutines.flow.first
 
+@Suppress("DEPRECATION")
 private fun getScreenResolution(activity: Activity) = if (androidSdkAtLeast(Build.VERSION_CODES.R)) {
     val bounds = activity.windowManager.currentWindowMetrics.bounds
     Pair(bounds.width(), bounds.height())

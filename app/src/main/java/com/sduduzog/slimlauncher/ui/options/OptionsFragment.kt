@@ -39,9 +39,8 @@ class OptionsFragment : BaseFragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
         inflater.inflate(R.layout.options_fragment, container, false)
 
-    @Deprecated("Deprecated in Java")
-    override fun onActivityCreated(savedInstanceState: Bundle?) {
-        super.onActivityCreated(savedInstanceState)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
         val optionsFragment = OptionsFragmentBinding.bind(requireView())
         optionsFragment.optionsFragmentDeviceSettings.setOnClickListener {
             val intent = Intent(Settings.ACTION_SETTINGS)

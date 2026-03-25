@@ -44,7 +44,7 @@
     <string name="customize_app_drawer_fragment_search_bar_position">Расположение</string>
     <string name="customize_app_drawer_fragment_search_field_options">Настройки строки поиска</string>
     <string name="customize_app_drawer_fragment_search_field_options_subtitle_status_hidden">Строка поиска скрыта</string>
-    <string name="customize_app_drawer_fragment_search_field_options_subtitle_status_shown">Расположение: %s, клавиатура %s</string>
+    <string name="customize_app_drawer_fragment_search_field_options_subtitle_status_shown" formatted="false">Расположение: %s, клавиатура %s</string>
     <string name="customize_app_drawer_fragment_show_headings">Выполнять группировку</string>
     <string name="customize_app_drawer_fragment_show_headings_subtitle">Разделять приложения в группы по алфавиту</string>
     <string name="customize_app_drawer_fragment_show_search_bar">Показывать строку поиска</string>

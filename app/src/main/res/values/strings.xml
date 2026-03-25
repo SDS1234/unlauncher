@@ -65,7 +65,7 @@
     <string name="customize_app_drawer_fragment_search_bar_position">Position</string>
     <string name="customize_app_drawer_fragment_search_field_options">Search Field Options</string>
     <string name="customize_app_drawer_fragment_search_field_options_subtitle_status_hidden">Search Field is hidden</string>
-    <string name="customize_app_drawer_fragment_search_field_options_subtitle_status_shown">%s position, keyboard is %s</string>
+    <string name="customize_app_drawer_fragment_search_field_options_subtitle_status_shown" formatted="false">%s position, keyboard is %s</string>
     <string name="customize_app_drawer_fragment_show_headings">Show Groupings</string>
     <string name="customize_app_drawer_fragment_show_headings_subtitle">Separate apps into alphabetical groups</string>
     <string name="customize_app_drawer_fragment_show_search_bar">Show Search Field</string>

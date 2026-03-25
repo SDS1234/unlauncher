@@ -61,7 +61,7 @@
     <string name="customize_app_drawer_fragment_search_bar_position">Розташування</string>
     <string name="customize_app_drawer_fragment_search_field_options">Налаштування поля пошуку</string>
     <string name="customize_app_drawer_fragment_search_field_options_subtitle_status_hidden">Поле пошуку приховано</string>
-    <string name="customize_app_drawer_fragment_search_field_options_subtitle_status_shown">%s, клавіатура %s</string>
+    <string name="customize_app_drawer_fragment_search_field_options_subtitle_status_shown" formatted="false">%s, клавіатура %s</string>
     <string name="customize_app_drawer_fragment_show_headings">Показувати групи</string>
     <string name="customize_app_drawer_fragment_show_headings_subtitle">Поділити програми на групи за абеткою</string>
     <string name="customize_app_drawer_fragment_show_search_bar">Показувати поле пошуку</string>

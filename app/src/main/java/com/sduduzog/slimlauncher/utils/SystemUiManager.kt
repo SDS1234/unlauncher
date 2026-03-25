@@ -105,6 +105,7 @@ open class SystemUiManager internal constructor(
         }
     }
 
+    @Suppress("DEPRECATION")
     @TargetApi(Build.VERSION_CODES.O)
     open fun setSystemUiColors() {
         // These colors can be hard-coded in the theme xml once the minimum Android API version is 26
@@ -134,12 +135,14 @@ open class SystemUiManager internal constructor(
 
     private open class OSystemUiManager(context: Context, prefsRepo: DataRepository<CorePreferences>) :
         SystemUiManager(context, prefsRepo) {
+        @Suppress("DEPRECATION")
         @RequiresApi(Build.VERSION_CODES.O)
         override fun setSystemUiVisibility() {
             window.decorView.systemUiVisibility =
                 getLightUiBarFlags() or getToggleStatusBarFlags()
         }
 
+        @Suppress("DEPRECATION")
         @RequiresApi(Build.VERSION_CODES.O)
         open fun getLightUiBarFlags(): Int = if (isLightModeTheme()) {
             View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
@@ -147,17 +150,20 @@ open class SystemUiManager internal constructor(
             0
         }
 
+        @Suppress("DEPRECATION")
         private fun getToggleStatusBarFlags(): Int = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
             if (isSystemUiHidden()) View.SYSTEM_UI_FLAG_FULLSCREEN else 0
     }
 
     private open class MSystemUiManager(context: Context, prefsRepo: DataRepository<CorePreferences>) :
         OSystemUiManager(context, prefsRepo) {
+        @Suppress("DEPRECATION")
         @RequiresApi(Build.VERSION_CODES.M)
         override fun setSystemUiColors() {
             window.statusBarColor = getPrimaryColor()
         }
 
+        @Suppress("DEPRECATION")
         @RequiresApi(Build.VERSION_CODES.M)
         override fun getLightUiBarFlags(): Int = if (isLightModeTheme()) View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR else 0
     }

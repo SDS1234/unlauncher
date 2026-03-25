@@ -1,8 +1,10 @@
 package com.sduduzog.slimlauncher
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.res.Resources
 import android.graphics.Rect
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.GestureDetector
@@ -95,7 +97,16 @@ class MainActivity :
 
     override fun onResume() {
         super.onResume()
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(
+                Activity.OVERRIDE_TRANSITION_OPEN,
+                android.R.anim.fade_in,
+                android.R.anim.fade_out
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        }
         systemUiManager.setSystemUiVisibility()
     }
 
@@ -123,6 +134,7 @@ class MainActivity :
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
+        @Suppress("DEPRECATION")
         super.onBackPressed()
         dispatchBack()
     }
@@ -133,6 +145,7 @@ class MainActivity :
     }
 
     private fun completeBackAction() {
+        @Suppress("DEPRECATION")
         super.onBackPressed()
     }
 
