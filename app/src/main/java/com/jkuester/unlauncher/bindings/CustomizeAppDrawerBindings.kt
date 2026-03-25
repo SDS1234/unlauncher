@@ -3,10 +3,12 @@ package com.jkuester.unlauncher.bindings
 import android.content.res.Resources
 import android.view.View.OnClickListener
 import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentManager
 import androidx.navigation.Navigation
 import com.jkuester.unlauncher.datasource.DataRepository
 import com.jkuester.unlauncher.datasource.toggleShowDrawerHeadings
 import com.jkuester.unlauncher.datastore.proto.CorePreferences
+import com.jkuester.unlauncher.dialog.FolderIconStyleDialog
 import com.sduduzog.slimlauncher.R
 import com.sduduzog.slimlauncher.databinding.CustomizeAppDrawerBinding
 
@@ -65,3 +67,16 @@ fun setupSearchFieldOptionsButton(corePrefsRepo: DataRepository<CorePreferences>
             options.searchFieldOptionsSubtitle.text = getSearchFieldOptionButtonSubtitle(it, resources)
         }
     }
+
+fun setupFolderIconStyleButton(
+    corePrefsRepo: DataRepository<CorePreferences>,
+    fragmentManager: FragmentManager,
+    resources: Resources
+) = { options: CustomizeAppDrawerBinding ->
+    options.folderIconStyleTitle.setOnClickListener { FolderIconStyleDialog().showNow(fragmentManager, null) }
+    options.folderIconStyleSubtitle.setOnClickListener { FolderIconStyleDialog().showNow(fragmentManager, null) }
+    corePrefsRepo.observe {
+        options.folderIconStyleSubtitle.text =
+            resources.getStringArray(R.array.folder_icon_style_array)[it.folderIconStyle.number]
+    }
+}

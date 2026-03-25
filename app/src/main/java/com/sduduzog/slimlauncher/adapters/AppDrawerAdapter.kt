@@ -11,6 +11,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.recyclerview.widget.RecyclerView
 import com.jkuester.unlauncher.datasource.DataRepository
 import com.jkuester.unlauncher.datastore.proto.CorePreferences
+import com.jkuester.unlauncher.datastore.proto.FolderIconStyle
 import com.jkuester.unlauncher.datastore.proto.UnlauncherApp
 import com.jkuester.unlauncher.datastore.proto.UnlauncherApps
 import com.jkuester.unlauncher.datastore.proto.UnlauncherFolder
@@ -20,8 +21,10 @@ import com.sduduzog.slimlauncher.utils.firstUppercase
 import com.sduduzog.slimlauncher.utils.gravity
 import java.util.Locale
 
-private const val FOLDER_PREFIX = "\u25B8 " // ▸ (right-pointing small triangle)
-private const val FOLDER_EXPANDED_PREFIX = "\u25BE " // ▾ (down-pointing small triangle)
+private const val TRIANGLE_FOLDER_PREFIX = "\u25B8 "          // ▸ right-pointing small triangle
+private const val TRIANGLE_FOLDER_EXPANDED_PREFIX = "\u25BE " // ▾ down-pointing small triangle
+private const val EMOJI_FOLDER_PREFIX = "\uD83D\uDCC1 "       // 📁
+private const val EMOJI_FOLDER_EXPANDED_PREFIX = "\uD83D\uDCC2 " // 📂
 
 class AppDrawerAdapter(
     private val listener: HomeFragment.AppDrawerListener,
@@ -37,6 +40,8 @@ class AppDrawerAdapter(
     private var filteredApps: List<AppDrawerRow> = listOf()
     private var gravity = 3
     private val expandedFolderIds = mutableSetOf<String>()
+    private var folderCollapsedPrefix = TRIANGLE_FOLDER_PREFIX
+    private var folderExpandedPrefix = TRIANGLE_FOLDER_EXPANDED_PREFIX
 
     init {
         unlauncherAppsRepo.observe { unlauncherApps ->
@@ -48,6 +53,13 @@ class AppDrawerAdapter(
         }
         corePreferencesRepo.observe { corePrefs ->
             gravity = corePrefs.alignmentFormat.gravity()
+            if (corePrefs.folderIconStyle == FolderIconStyle.emoji) {
+                folderCollapsedPrefix = EMOJI_FOLDER_PREFIX
+                folderExpandedPrefix = EMOJI_FOLDER_EXPANDED_PREFIX
+            } else {
+                folderCollapsedPrefix = TRIANGLE_FOLDER_PREFIX
+                folderExpandedPrefix = TRIANGLE_FOLDER_EXPANDED_PREFIX
+            }
             updateFilteredApps()
         }
     }
@@ -82,7 +94,7 @@ class AppDrawerAdapter(
 
             is AppDrawerRow.FolderItem -> {
                 val unlauncherApp = drawerRow.app
-                (holder as FolderItemViewHolder).bind(unlauncherApp)
+                (holder as FolderItemViewHolder).bind(unlauncherApp, folderCollapsedPrefix)
                 holder.itemView.setOnClickListener {
                     listener.onAppClicked(unlauncherApp)
                 }
@@ -345,7 +357,7 @@ class AppDrawerAdapter(
         override fun toString(): String = "${super.toString()} '${item.text}'"
 
         fun bind(folder: UnlauncherFolder, isExpanded: Boolean) {
-            val prefix = if (isExpanded) FOLDER_EXPANDED_PREFIX else FOLDER_PREFIX
+            val prefix = if (isExpanded) folderExpandedPrefix else folderCollapsedPrefix
             item.text = "$prefix${folder.displayName}"
             item.gravity = gravity
         }
@@ -354,19 +366,20 @@ class AppDrawerAdapter(
     inner class FolderItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val item: TextView = itemView.findViewById(R.id.app_list_item_name)
 
-        // Capture the base padding and the rendered prefix width once at construction (before
-        // any bind calls) so that repeated bind() calls on a recycled holder are allocation-free
-        // and don't accumulate extra padding.
+        // Capture base padding and both possible prefix widths once at construction so
+        // bind() is allocation-free and a style change is reflected on the next rebind.
         private val basePaddingStart = item.paddingStart
-        private val prefixWidth = item.paint.measureText(FOLDER_PREFIX).toInt()
+        private val trianglePrefixWidth = item.paint.measureText(TRIANGLE_FOLDER_PREFIX).toInt()
+        private val emojiPrefixWidth = item.paint.measureText(EMOJI_FOLDER_PREFIX).toInt()
 
         override fun toString(): String = "${super.toString()} '${item.text}'"
 
-        fun bind(app: UnlauncherApp) {
+        fun bind(app: UnlauncherApp, collapsedPrefix: String) {
             item.text = app.displayName
             item.gravity = gravity
-            // Indent by the exact rendered width of the folder prefix so folder items
-            // align with the folder name text regardless of the user's alignment setting.
+            // Pick the pre-measured width that matches the current prefix to indent folder
+            // items so they align with the folder name text regardless of alignment setting.
+            val prefixWidth = if (collapsedPrefix == EMOJI_FOLDER_PREFIX) emojiPrefixWidth else trianglePrefixWidth
             item.setPaddingRelative(
                 basePaddingStart + prefixWidth,
                 item.paddingTop,

@@ -47,6 +47,11 @@
         <item>12 Hour</item>
     </string-array>
 
+    <string-array name="folder_icon_style_array">
+        <item>Triangle (▸/▾)</item>
+        <item>Emoji (📁/📂)</item>
+    </string-array>
+
     <string name="add_apps_fragment_search_apps">Search apps</string>
     <string name="app_info">App Info</string>
     <string name="choose_alignment_dialog_title">Alignment</string>
@@ -93,6 +98,7 @@
     <string name="quick_buttons_description_left">Phone Quick Button</string>
     <string name="quick_buttons_description_right">Camera Quick Button</string>
     <string name="add_to_folder">Add to Folder</string>
+    <string name="choose_folder_icon_style_dialog_title">Folder Icon Style</string>
     <string name="create_folder">Create Folder</string>
     <string name="delete_folder">Delete Folder</string>
     <string name="delete_folder_confirmation">Delete folder \"%1$s\"? Apps will be moved out of the folder.</string>
@@ -100,6 +106,7 @@
     <string name="remove_from_folder">Remove from Folder</string>
     <string name="rename_folder">Rename Folder</string>
     <string name="rename_app">Rename App</string>
+    <string name="customize_app_drawer_fragment_folder_icon_style">Folder Icon Style</string>
     <string name="shown">shown</string>
     <string name="uninstall">Uninstall</string>
 </resources>
