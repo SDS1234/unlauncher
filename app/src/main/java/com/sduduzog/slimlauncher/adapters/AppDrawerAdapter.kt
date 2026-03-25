@@ -325,6 +325,7 @@ class AppDrawerAdapter(
 
         override fun toString(): String = "${super.toString()} '${item.text}'"
 
+        @SuppressLint("SetTextI18n")
         fun bind(folder: UnlauncherFolder, isExpanded: Boolean) {
             val prefix = if (isExpanded) FOLDER_EXPANDED_PREFIX else FOLDER_PREFIX
             item.text = "$prefix${folder.displayName}"
@@ -337,6 +338,7 @@ class AppDrawerAdapter(
 
         override fun toString(): String = "${super.toString()} '${item.text}'"
 
+        @SuppressLint("SetTextI18n")
         fun bind(app: UnlauncherApp) {
             item.text = "$FOLDER_ITEM_INDENT${app.displayName}"
             item.gravity = gravity
