@@ -108,7 +108,9 @@ class AppDrawerAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
-        return when (RowType.entries.getOrNull(viewType) ?: throw IllegalArgumentException("Unknown viewType: $viewType")) {
+        val rowType = RowType.entries.getOrNull(viewType)
+            ?: throw IllegalArgumentException("Unknown viewType: $viewType")
+        return when (rowType) {
             RowType.App -> ItemViewHolder(
                 inflater.inflate(R.layout.app_list_item, parent, false)
             )
@@ -182,14 +184,18 @@ class AppDrawerAdapter(
         }
     }
 
-    private fun groupAppsByFolder(displayableApps: List<UnlauncherApp>): Pair<Map<String, List<UnlauncherApp>>, List<UnlauncherApp>> {
+    private fun groupAppsByFolder(
+        displayableApps: List<UnlauncherApp>
+    ): Pair<Map<String, List<UnlauncherApp>>, List<UnlauncherApp>> {
         val validFolderIds = folders.map { it.id }.toSet()
         val (appsWithKnownFolderId, nonFolderApps) = displayableApps.partition { app ->
             app.hasFolderId() && validFolderIds.contains(app.folderId)
         }
         return appsWithKnownFolderId
             .groupBy { it.folderId }
-            .mapValues { (_, apps) -> apps.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName }) } to nonFolderApps
+            .mapValues { (_, apps) ->
+                apps.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
+            } to nonFolderApps
     }
 
     private fun buildFlatListWithFolders(displayableApps: List<UnlauncherApp>): List<AppDrawerRow> {
@@ -220,8 +226,11 @@ class AppDrawerAdapter(
         }.groupBy { it.first }
 
         val appsByFirstLetter = nonFolderApps.groupBy { app ->
-            if (app.displayName.startsWith(workAppPrefix)) workAppPrefix
-            else app.displayName.firstUppercase()
+            if (app.displayName.startsWith(workAppPrefix)) {
+                workAppPrefix
+            } else {
+                app.displayName.firstUppercase()
+            }
         }
 
         val allLetters = (appsByFirstLetter.keys + foldersByFirstLetter.keys).toSortedSet()
